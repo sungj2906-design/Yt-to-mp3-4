@@ -40,7 +40,7 @@ export default function App() {
   const [platform, setPlatform] = useState<'youtube' | 'instagram'>('youtube');
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState<'mp3' | 'mp4'>('mp3');
-  const [audioQuality, setAudioQuality] = useState('mp3'); // mp3 (high), aac (low)
+  const [audioQuality, setAudioQuality] = useState('320kbps'); // 120kbps, 192kbps, 256kbps, 320kbps, opus
   const [videoQuality, setVideoQuality] = useState('1080'); // 144, 360, 480, 720, 1080, 1440, 4k, 8k
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -187,117 +187,117 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setFormat('mp3')}
-                className={`flex items-center justify-center gap-2 py-4 rounded-xl border transition-all duration-300 ${
-                  format === 'mp3' 
-                    ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/50 text-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.2)]' 
-                    : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300 hover:border-zinc-700'
-                }`}
-              >
-                <Music className={`w-5 h-5 ${format === 'mp3' ? 'drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]' : ''}`} />
-                <span className="font-semibold tracking-wide">Audio (MP3)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormat('mp4')}
-                className={`flex items-center justify-center gap-2 py-4 rounded-xl border transition-all duration-300 ${
-                  format === 'mp4' 
-                    ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
-                    : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300 hover:border-zinc-700'
-                }`}
-              >
-                <Video className={`w-5 h-5 ${format === 'mp4' ? 'drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]' : ''}`} />
-                <span className="font-semibold tracking-wide">Video (MP4)</span>
-              </button>
-            </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormat('mp3')}
+                    className={`flex items-center justify-center gap-2 py-4 rounded-xl border transition-all duration-300 ${
+                      format === 'mp3' 
+                        ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/50 text-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.2)]' 
+                        : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300 hover:border-zinc-700'
+                    }`}
+                  >
+                    <Music className={`w-5 h-5 ${format === 'mp3' ? 'drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]' : ''}`} />
+                    <span className="font-semibold tracking-wide">Audio (MP3)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormat('mp4')}
+                    className={`flex items-center justify-center gap-2 py-4 rounded-xl border transition-all duration-300 ${
+                      format === 'mp4' 
+                        ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
+                        : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300 hover:border-zinc-700'
+                    }`}
+                  >
+                    <Video className={`w-5 h-5 ${format === 'mp4' ? 'drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]' : ''}`} />
+                    <span className="font-semibold tracking-wide">Video (MP4)</span>
+                  </button>
+                </div>
 
-            <AnimatePresence mode="wait">
-              {format === 'mp3' && platform === 'youtube' && (
-                <motion.div
-                  key="mp3-options"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-2 overflow-hidden"
+                <AnimatePresence mode="wait">
+                  {format === 'mp3' && (
+                    <motion.div
+                      key="mp3-options"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      <label className="text-sm font-semibold text-zinc-300 ml-1 uppercase tracking-wider">
+                        Audio Quality
+                      </label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {['120kbps', '192kbps', '256kbps', '320kbps', 'opus'].map((q) => (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => setAudioQuality(q)}
+                            className={`py-3 rounded-xl border transition-all duration-300 font-medium ${
+                              audioQuality === q
+                                ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.15)]'
+                                : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
+                            }`}
+                          >
+                            {q === 'opus' ? 'Opus' : q}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {format === 'mp4' && (
+                    <motion.div
+                      key="mp4-options"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      <label className="text-sm font-semibold text-zinc-300 ml-1 uppercase tracking-wider">
+                        Video Resolution
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {['144', '360', '480', '720', '1080', '1440', '4k'].map((q) => (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => setVideoQuality(q)}
+                            className={`py-2 rounded-lg border transition-all duration-300 font-medium text-sm ${
+                              videoQuality === q
+                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                                : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
+                            }`}
+                          >
+                            {q === '1440' ? '1440p' : q === '4k' ? '4K' : `${q}p`}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button
+                  type="submit"
+                  disabled={loading || !url}
+                  className="w-full relative group overflow-hidden bg-zinc-100 text-black disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
                 >
-                  <label className="text-sm font-semibold text-zinc-300 ml-1 uppercase tracking-wider">
-                    Audio Quality
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {['mp3', 'aac'].map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => setAudioQuality(q)}
-                        className={`py-3 rounded-xl border transition-all duration-300 font-medium ${
-                          audioQuality === q
-                            ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.15)]'
-                            : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
-                        }`}
-                      >
-                        {q === 'mp3' ? 'High Bitrate (MP3)' : 'Low Bitrate (AAC)'}
-                      </button>
-                    ))}
+                  {!loading && !(!url) && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  )}
+                  <div className={`relative flex items-center gap-2 ${!loading && !(!url) ? 'group-hover:text-white' : ''} transition-colors z-10`}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Convert Now
+                        <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
                   </div>
-                </motion.div>
-              )}
-
-              {format === 'mp4' && platform === 'youtube' && (
-                <motion.div
-                  key="mp4-options"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-2 overflow-hidden"
-                >
-                  <label className="text-sm font-semibold text-zinc-300 ml-1 uppercase tracking-wider">
-                    Video Resolution
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {['144', '360', '480', '720', '1080', '1440', '4k', '8k'].map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => setVideoQuality(q)}
-                        className={`py-2 rounded-lg border transition-all duration-300 font-medium text-sm ${
-                          videoQuality === q
-                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-                            : 'bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
-                        }`}
-                      >
-                        {q === '1440' ? '1440p' : q === '4k' ? '4K' : q === '8k' ? '8K' : `${q}p`}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <button
-              type="submit"
-              disabled={loading || !url}
-              className="w-full relative group overflow-hidden bg-zinc-100 text-black disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
-            >
-              {!loading && !(!url) && (
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              )}
-              <div className={`relative flex items-center gap-2 ${!loading && !(!url) ? 'group-hover:text-white' : ''} transition-colors z-10`}>
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Convert Now
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </div>
-            </button>
+                </button>
           </form>
         </div>
         </ScrollReveal>

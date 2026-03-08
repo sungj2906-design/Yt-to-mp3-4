@@ -29,69 +29,32 @@ async function startServer() {
     }
 
     try {
-      if (platform === 'instagram') {
-        const apiKey = process.env.INSTAGRAM_API_KEY;
-        if (!apiKey || apiKey === 'your_instagram_api_key_here') {
-          return res.status(200).json({
-            simulated: true,
-            title: "Simulated Instagram Download (API Key Required)",
-            thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80",
-            downloadUrl: "#",
-            format: format === 'mp3' ? 'MP3' : 'MP4',
-            message: "Please configure your INSTAGRAM_API_KEY in the environment to enable real Instagram downloads. You can get one from RapidAPI (e.g., 'Instagram Downloader' API)."
-          });
+      // Validate URL based on platform
+      let videoId = null;
+      if (platform === 'youtube') {
+        const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([^&?]{11})/);
+        videoId = videoIdMatch ? videoIdMatch[1] : null;
+        if (!videoId) {
+          return res.status(400).json({ error: 'Invalid YouTube URL' });
         }
-
-        // Using a generic Instagram downloader API from RapidAPI
-        // Note: The specific host might need to be adjusted based on the exact API chosen by the user
-        const response = await fetch(`https://instagram-downloader-download-instagram-videos-stories.p.rapidapi.com/index?url=${encodeURIComponent(url)}`, {
-          headers: {
-            'x-rapidapi-host': 'instagram-downloader-download-instagram-videos-stories.p.rapidapi.com',
-            'x-rapidapi-key': apiKey
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Instagram API request failed (Status: ${response.status})`);
+      } else if (platform === 'instagram') {
+        const igRegex = /^(https?:\/\/)?(www\.)?instagram\.com\/(p|reel|tv)\/.+$/;
+        if (!igRegex.test(url)) {
+          return res.status(400).json({ error: 'Invalid Instagram URL' });
         }
-
-        const data = await response.json();
-
-        if (!data || !data.media) {
-           throw new Error('Failed to extract media from this Instagram URL. Ensure the post is public.');
-        }
-
-        // Extract the best matching media
-        let downloadUrl = '';
-        let thumbnail = data.thumbnail || "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80";
-        
-        if (format === 'mp4') {
-           // Try to find a video URL
-           downloadUrl = data.media.find((m: any) => m.type === 'video')?.url || data.media[0].url;
-        } else {
-           // Try to find audio, or fallback to video if the API doesn't separate them
-           downloadUrl = data.media.find((m: any) => m.type === 'audio')?.url || data.media[0].url;
-        }
-
-        return res.json({
-          title: data.title || 'Instagram Media',
-          thumbnail: thumbnail,
-          downloadUrl: downloadUrl,
-          format: format === 'mp3' ? 'MP3' : 'MP4'
-        });
-      }
-
-      // YouTube Logic
-      // Extract video ID from URL
-      const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&]{11})/);
-      const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-      if (!videoId) {
-        return res.status(400).json({ error: 'Invalid YouTube URL' });
+      } else {
+        return res.status(400).json({ error: 'Invalid platform' });
       }
 
       // Use loader.to for both MP3 and MP4
-      const loaderFormat = format === 'mp3' ? quality : quality; // quality is 'mp3'/'aac' for audio, or '144'/'1080' etc for video
+      let loaderFormat = quality;
+      if (format === 'mp3') {
+        if (quality === 'opus') {
+          loaderFormat = 'opus';
+        } else {
+          loaderFormat = 'mp3'; // loader.to defaults to 320kbps for mp3
+        }
+      }
       
       // Start the conversion
       let initResponse;
@@ -153,16 +116,20 @@ async function startServer() {
 
       let displayFormat = '';
       if (format === 'mp3') {
-        displayFormat = quality.toUpperCase();
+        displayFormat = quality === 'opus' ? 'OPUS' : `${quality.toUpperCase()}`;
       } else {
         if (quality === '4k') displayFormat = '4K MP4';
         else if (quality === '8k') displayFormat = '8K MP4';
         else displayFormat = `${quality}p MP4`;
       }
 
+      const defaultThumbnail = platform === 'youtube' && videoId 
+        ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+        : 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80';
+
       return res.json({
         title: initData.title || 'Media Download',
-        thumbnail: initData.info?.image || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        thumbnail: initData.info?.image || defaultThumbnail,
         downloadUrl: downloadUrl,
         format: displayFormat
       });
