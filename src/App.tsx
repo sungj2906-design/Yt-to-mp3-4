@@ -1,6 +1,15 @@
 import { useState, FormEvent, useEffect, useRef, ReactNode } from 'react';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
-import { Youtube, Instagram, Music, Video, Download, Loader2, AlertCircle, CheckCircle2, ArrowRight, Link, Settings2, DownloadCloud, Sparkles } from 'lucide-react';
+import { Youtube, Instagram, Music, Video, Download, Loader2, AlertCircle, CheckCircle2, ArrowRight, Link, Settings2, DownloadCloud, Sparkles, History, Trash2, Copy } from 'lucide-react';
+
+interface DownloadHistoryItem {
+  id: string;
+  url: string;
+  title: string;
+  format: string;
+  date: string;
+  thumbnail: string;
+}
 
 function ScrollReveal({ children, delay = 0 }: { children: ReactNode, delay?: number }) {
   const { scrollY } = useScroll();
@@ -45,6 +54,35 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [history, setHistory] = useState<DownloadHistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('downloadHistory');
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse history', e);
+      }
+    }
+  }, []);
+
+  const saveToHistory = (item: Omit<DownloadHistoryItem, 'id' | 'date'>) => {
+    const newItem: DownloadHistoryItem = {
+      ...item,
+      id: Math.random().toString(36).substring(2, 9),
+      date: new Date().toISOString()
+    };
+    const newHistory = [newItem, ...history].slice(0, 20); // Keep last 20
+    setHistory(newHistory);
+    localStorage.setItem('downloadHistory', JSON.stringify(newHistory));
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem('downloadHistory');
+  };
 
   const handleConvert = async (e: FormEvent) => {
     e.preventDefault();
@@ -71,6 +109,7 @@ export default function App() {
     const quality = format === 'mp3' ? audioQuality : videoQuality;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+    const startTime = Date.now();
 
     try {
       const res = await fetch('/api/convert', {
@@ -90,7 +129,18 @@ export default function App() {
         throw new Error('Received an invalid response from the server.');
       }
       
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 15000) {
+        await new Promise(resolve => setTimeout(resolve, 15000 - elapsed));
+      }
+      
       setResult(data);
+      saveToHistory({
+        url,
+        title: data.title,
+        format: data.format,
+        thumbnail: data.thumbnail
+      });
     } catch (err: any) {
       if (err.name === 'AbortError') {
         setError('The conversion took too long. Please try again later.');
@@ -115,6 +165,61 @@ export default function App() {
       </div>
 
       <main className="relative z-10 container mx-auto px-4 py-20 max-w-3xl">
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 z-50">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-2 bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 px-4 py-2 rounded-full transition-all shadow-lg backdrop-blur-xl"
+          >
+            <History className="w-4 h-4" />
+            <span className="text-sm font-semibold tracking-wide uppercase">History</span>
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-16 right-4 md:top-20 md:right-8 w-80 bg-zinc-900/95 backdrop-blur-3xl border border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden"
+            >
+              <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950/50">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <History className="w-4 h-4 text-amber-500" />
+                  Recent Downloads
+                </h3>
+                {history.length > 0 && (
+                  <button onClick={clearHistory} className="text-zinc-500 hover:text-rose-400 transition-colors" title="Clear History">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <div className="max-h-96 overflow-y-auto p-2">
+                {history.length === 0 ? (
+                  <div className="p-6 text-center text-zinc-500 text-sm">
+                    No downloads yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {history.map(item => (
+                      <div key={item.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-zinc-800/50 transition-colors group">
+                        <img src={item.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover border border-zinc-700/50" referrerPolicy="no-referrer" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-zinc-200 truncate">{item.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">{item.format}</span>
+                            <span className="text-[10px] text-zinc-500">{new Date(item.date).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <ScrollReveal>
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center p-4 bg-zinc-900/80 rounded-2xl border border-zinc-800 mb-6 shadow-[0_0_30px_rgba(234,179,8,0.3)] backdrop-blur-xl">
@@ -336,14 +441,14 @@ export default function App() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2 tracking-wide">Processing Media</h3>
                 <p className="text-zinc-400 max-w-md mx-auto mb-8">
-                  Extracting the highest quality streams from {platform === 'youtube' ? 'YouTube' : 'Instagram'}. This usually takes 10-30 seconds depending on the file size.
+                  Extracting the highest quality streams from {platform === 'youtube' ? 'YouTube' : 'Instagram'}. This process takes at least 15 seconds to ensure perfect quality.
                 </p>
                 <div className="w-full max-w-md mx-auto bg-zinc-950/80 rounded-full h-3 border border-zinc-800 overflow-hidden relative">
                   <motion.div 
                     className="absolute top-0 left-0 h-full bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 shadow-[0_0_15px_rgba(245,158,11,0.8)]"
                     initial={{ width: "0%" }}
-                    animate={{ width: "90%" }}
-                    transition={{ duration: 20, ease: "easeOut" }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 15, ease: "linear" }}
                   />
                 </div>
               </div>
@@ -395,15 +500,31 @@ export default function App() {
                       <span className="uppercase bg-zinc-800/80 border border-zinc-700 px-3 py-1.5 rounded-lg font-semibold tracking-wider shadow-inner">{result.format}</span>
                     </div>
                     
-                    <a
-                      href={result.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full md:w-auto items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:-translate-y-0.5"
-                    >
-                      <Download className="w-6 h-6" />
-                      Download File
-                    </a>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                      <a
+                        href={result.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:-translate-y-0.5"
+                      >
+                        <Download className="w-6 h-6" />
+                        Download File
+                      </a>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(result.downloadUrl);
+                          const btn = document.getElementById('copy-btn-text');
+                          if (btn) {
+                            btn.innerText = 'Copied!';
+                            setTimeout(() => { btn.innerText = 'Copy Link'; }, 2000);
+                          }
+                        }}
+                        className="inline-flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-4 rounded-xl font-bold text-lg transition-all border border-zinc-700 hover:border-zinc-600"
+                      >
+                        <Copy className="w-5 h-5" />
+                        <span id="copy-btn-text">Copy Link</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

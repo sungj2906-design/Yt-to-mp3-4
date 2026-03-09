@@ -35,25 +35,26 @@ async function startServer() {
         const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([^&?]{11})/);
         videoId = videoIdMatch ? videoIdMatch[1] : null;
         if (!videoId) {
-          return res.status(400).json({ error: 'Invalid YouTube URL' });
+          return res.status(400).json({ error: 'Invalid YouTube URL. Please provide a valid YouTube video or Shorts link.' });
         }
       } else if (platform === 'instagram') {
         const igRegex = /^(https?:\/\/)?(www\.)?instagram\.com\/(p|reel|tv)\/.+$/;
         if (!igRegex.test(url)) {
-          return res.status(400).json({ error: 'Invalid Instagram URL' });
+          return res.status(400).json({ error: 'Invalid Instagram URL. Please provide a valid Instagram Post, Reel, or TV link.' });
         }
       } else {
-        return res.status(400).json({ error: 'Invalid platform' });
+        return res.status(400).json({ error: 'Invalid platform selected.' });
       }
 
-      // Use loader.to for both MP3 and MP4
+      // Map audio bitrates to loader.to formats
       let loaderFormat = quality;
       if (format === 'mp3') {
-        if (quality === 'opus') {
-          loaderFormat = 'opus';
-        } else {
-          loaderFormat = 'mp3'; // loader.to defaults to 320kbps for mp3
-        }
+        if (quality === '120kbps') loaderFormat = 'aac';
+        else if (quality === '192kbps') loaderFormat = 'ogg';
+        else if (quality === '256kbps') loaderFormat = 'm4a';
+        else if (quality === '320kbps') loaderFormat = 'mp3';
+        else if (quality === 'opus') loaderFormat = 'opus';
+        else loaderFormat = 'mp3';
       }
       
       // Start the conversion
@@ -61,7 +62,7 @@ async function startServer() {
       try {
         initResponse = await fetch(`https://loader.to/ajax/download.php?format=${loaderFormat}&url=${encodeURIComponent(url)}`);
       } catch (err) {
-        throw new Error('Failed to connect to the conversion service. Please try again later.');
+        throw new Error('Network error: Failed to connect to the conversion service. Please check your connection and try again.');
       }
 
       if (!initResponse.ok) {
@@ -72,11 +73,11 @@ async function startServer() {
       try {
         initData = await initResponse.json();
       } catch (err) {
-        throw new Error('Received an invalid response from the conversion service.');
+        throw new Error('Received an invalid response from the conversion service. The service might be undergoing maintenance.');
       }
       
       if (!initData || !initData.success) {
-        throw new Error(initData?.text || 'Failed to start conversion. The video might be restricted or unavailable.');
+        throw new Error(initData?.message || initData?.text || 'Failed to start conversion. The video might be restricted, private, or unavailable.');
       }
 
       const jobId = initData.id;
